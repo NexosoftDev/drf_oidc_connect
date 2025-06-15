@@ -9,3 +9,5 @@ djangorestframework_simplejwt==5.5.0
 persisting-theory==1.0
 PyJWT==2.9.0
 sqlparse==0.5.3
+django-database-url
+psycopg2

@@ -18,7 +18,6 @@ app_name = 'apirest'
 urlpatterns = [
 
     path('', include(drf_router.urls)),
-    path('catalogo/', include('catalogo.urls')),
     path('oidc/', include('oidc.urls')),
 
 
