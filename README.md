@@ -1,119 +1,304 @@
-# BACKEND
+# Django REST Framework with Keycloak OIDC Integration
 
-## Configuración del Entorno
+A Django REST Framework (DRF) backend application that integrates with Keycloak for authentication and authorization using OpenID Connect (OIDC) protocol.
 
-Para ejecutar correctamente este proyecto, es necesario configurar un archivo `.env` con las variables de entorno requeridas. A continuación se detalla cómo crear y configurar este archivo.
+## Overview
 
-### Creación del archivo .env
+This project provides a complete authentication solution for Django applications using Keycloak as the identity provider. It supports both traditional Django session authentication and DRF token-based authentication, enabling single sign-on (SSO) capabilities across multiple applications.
 
-Crea un archivo llamado `.env` en la raíz del proyecto con la siguiente estructura:
+## Features
 
+- **Keycloak Integration**: Full integration with Keycloak using OpenID Connect protocol
+- **Dual Authentication**: Support for both Django session authentication and DRF token authentication
+- **JWT Token Management**: Secure token handling with automatic validation
+- **User Management**: Automatic user creation and synchronization with Keycloak user data
+- **Group Management**: Dynamic group membership based on Keycloak roles and groups
+- **Session Management**: Secure session handling with logout functionality
+- **Development-Ready**: Easy setup for local development environments
+
+## Prerequisites
+
+- Python 3.8 or higher
+- Django 3.2 or higher
+- Django REST Framework 3.12 or higher
+- Access to a Keycloak server (local or remote)
+
+## Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/NexosoftDev/drf_oidc_connect.git
+cd drf_oidc_connect
 ```
-# LLAVES PARA LOS TOKENS
-SECRET_KEY="tu-clave-privada-generada-con-openssl"
-SECRET_KEY_LOCAL="tu-secret-key-temporal-para-desarrollo"
 
-# CONFIGURACION DE KEYCLOAK
-OIDC_OP_BASE_URL="https://tu-servidor-keycloak.com/realms/tu-realm/"
-OIDC_RP_CLIENT_ID="tu-client-id"
-OIDC_RP_CLIENT_SECRET="tu-client-secret"
+### 2. Create Virtual Environment
+
+```bash
+python -m venv venv
+
+# Activate the virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+
+# Install the OIDC authentication library
+pip install mozilla-django-oidc
+```
+
+### 4. Environment Configuration
+
+Create a `.env` file in the project root with the following configuration:
+
+```env
+# JWT Token Keys
+SECRET_KEY="your-private-key-generated-with-openssl"
+SECRET_KEY_LOCAL="your-temporary-secret-key-for-development"
+
+# Keycloak OIDC Configuration
+OIDC_OP_BASE_URL="https://your-keycloak-server.com/realms/your-realm/"
+OIDC_RP_CLIENT_ID="your-client-id"
+OIDC_RP_CLIENT_SECRET="your-client-secret"
 LOGOUT_REDIRECT_URL="http://localhost:8000"
+
+# Optional: Additional OIDC Settings
+OIDC_VERIFY_SSL=True
+OIDC_USE_NONCE=True
+OIDC_CREATE_USER=True
 ```
 
-### Generación de Claves Seguras
+### 5. Generate Secure Keys
 
-#### Generar una clave privada para SECRET_KEY
+#### Production Key (SECRET_KEY)
+Generate a secure RSA private key for production:
 
-Puedes generar una clave privada segura utilizando OpenSSL con el siguiente comando:
-
-```
+```bash
 openssl genrsa -out private_key.pem 2048
 ```
 
-Este comando generará un archivo `private_key.pem` con una clave RSA de 2048 bits. El contenido de este archivo (incluyendo las líneas de inicio y fin) debe copiarse como valor para la variable `SECRET_KEY` en el archivo `.env`.
+Copy the entire content of `private_key.pem` (including header and footer) as the value for `SECRET_KEY`.
 
-#### Clave para desarrollo local
+#### Development Key (SECRET_KEY_LOCAL)
+Generate a simple base64 key for development:
 
-Para entornos de desarrollo, puedes utilizar una clave más simple. Puedes generar una cadena aleatoria con el siguiente comando:
-
-```
+```bash
 openssl rand -base64 32
 ```
 
-Este comando generará una cadena aleatoria de 32 bytes codificada en base64, que puedes usar como `SECRET_KEY_LOCAL`.
+Use the output as the value for `SECRET_KEY_LOCAL`.
 
-### Descripción de las Variables
+### 6. Database Setup
 
-#### Llaves para los Tokens
+```bash
+python manage.py migrate
+```
 
-- **SECRET_KEY**: Clave privada utilizada para firmar los tokens JWT en producción. Esta clave debe mantenerse segura y no debe compartirse.
-- **SECRET_KEY_LOCAL**: Clave simplificada para entornos de desarrollo local. Puedes personalizar este valor para tu entorno de desarrollo.
+### 7. Run Development Server
 
-#### Configuración de Keycloak
+```bash
+python manage.py runserver
+```
 
-- **OIDC_OP_BASE_URL**: URL base del proveedor de OpenID Connect (Keycloak). Esta URL apunta al realm específico de la aplicación.
-- **OIDC_RP_CLIENT_ID**: Identificador del cliente en Keycloak. Este valor debe coincidir con el cliente configurado en el servidor Keycloak.
-- **OIDC_RP_CLIENT_SECRET**: Secreto del cliente en Keycloak. Este valor es proporcionado por el servidor Keycloak al configurar el cliente.
-- **LOGOUT_REDIRECT_URL**: URL a la que se redirigirá después de cerrar sesión. Para desarrollo local, normalmente es la URL del servidor local.
+The application will be available at `http://localhost:8000`
 
-### Configuración Interna de OIDC
+## Keycloak Configuration
 
-El proyecto utiliza la biblioteca `mozilla-django-oidc` para la integración con Keycloak. Las variables definidas en el archivo `.env` se utilizan para configurar automáticamente los siguientes parámetros en el archivo `settings.py`:
+### Client Setup
+
+1. **Access Keycloak Admin Console**
+   - Navigate to your Keycloak admin interface
+   - Select your realm
+
+2. **Create OIDC Client**
+   - Go to Clients → Create Client
+   - Set Client type to "OpenID Connect"
+   - Configure the following settings:
+     - Client ID: `your-client-id`
+     - Client authentication: ON
+     - Authorization: ON (if using fine-grained permissions)
+
+3. **Configure Client Settings**
+   - **Valid redirect URIs**: `http://localhost:8000/oidc/callback/`
+   - **Valid post logout redirect URIs**: `http://localhost:8000/`
+   - **Web origins**: `http://localhost:8000`
+
+4. **Client Credentials**
+   - Navigate to the Credentials tab
+   - Copy the Client Secret for use in your `.env` file
+
+### Realm Configuration
+
+Ensure your Keycloak realm has:
+- Users with appropriate roles
+- Groups configured (if using group-based permissions)
+- Client scopes properly configured for OpenID Connect
+
+## Environment Variables Reference
+
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `SECRET_KEY` | RSA private key for JWT signing (production) | Yes | `-----BEGIN RSA PRIVATE KEY-----\n...` |
+| `SECRET_KEY_LOCAL` | Base64 key for development | Yes | `abc123def456...` |
+| `OIDC_OP_BASE_URL` | Keycloak realm base URL | Yes | `https://keycloak.example.com/realms/myapp/` |
+| `OIDC_RP_CLIENT_ID` | Keycloak client identifier | Yes | `django-app` |
+| `OIDC_RP_CLIENT_SECRET` | Keycloak client secret | Yes | `your-client-secret` |
+| `LOGOUT_REDIRECT_URL` | Post-logout redirect URL | Yes | `http://localhost:8000` |
+| `OIDC_VERIFY_SSL` | Enable SSL verification | No | `True` (default) |
+| `OIDC_USE_NONCE` | Use nonce for security | No | `True` (default) |
+| `OIDC_CREATE_USER` | Auto-create users on login | No | `True` (default) |
+
+## API Endpoints
+
+### Authentication Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/oidc/authenticate/` | GET | Initiate OIDC authentication flow |
+| `/oidc/callback/` | GET/POST | OIDC callback handler |
+| `/oidc/logout/` | GET/POST | Logout and end OIDC session |
+
+### API Endpoints
+
+| Endpoint | Method | Description | Authentication |
+|----------|--------|-------------|----------------|
+| `/rest/v1/oidc/obtener-token/get-token/` | POST | Obtain JWT access token | Session |
+| `/rest/v1/oidc/obtener-token/me/` | GET | Get current user information | Token |
+
+## Usage Examples
+
+### Frontend Integration
+
+```javascript
+// Redirect to authentication
+window.location.href = '/oidc/authenticate/';
+
+// Get user token (after authentication)
+fetch('/rest/v1/oidc/obtener-token/get-token/', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+    }
+})
+.then(response => response.json())
+.then(data => {
+    const token = data.access_token;
+    // Use token for subsequent API calls
+});
+```
+
+### API Authentication
+
+```javascript
+// Using the JWT token for API requests
+fetch('/api/protected-endpoint/', {
+    headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+    }
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+
+## OIDC Endpoints Configuration
+
+The system automatically configures the following OIDC endpoints based on your `OIDC_OP_BASE_URL`:
 
 ```python
-# Estos valores se generan automáticamente a partir de OIDC_OP_BASE_URL
 OIDC_OP_AUTHORIZATION_ENDPOINT = f'{OIDC_OP_BASE_URL}/protocol/openid-connect/auth'
 OIDC_OP_TOKEN_ENDPOINT = f'{OIDC_OP_BASE_URL}/protocol/openid-connect/token'
 OIDC_OP_USER_ENDPOINT = f'{OIDC_OP_BASE_URL}/protocol/openid-connect/userinfo'
 OIDC_OP_JWKS_ENDPOINT = f'{OIDC_OP_BASE_URL}/protocol/openid-connect/certs'
 ```
 
-## Configuración Inicial del Proyecto
+## Development vs Production
 
-1. Crea un entorno virtual de Python:
-   ```
-   python -m venv venv
-   ```
+### Development Environment
+- Use `SECRET_KEY_LOCAL` for simpler key management
+- Set `OIDC_VERIFY_SSL=False` if using self-signed certificates
+- Use localhost URLs for redirect URIs
 
-2. Activa el entorno virtual:
-   - En Windows: `venv\Scripts\activate`
-   - En macOS/Linux: `source venv/bin/activate`
+### Production Environment
+- Always use a secure `SECRET_KEY` generated with OpenSSL
+- Enable SSL verification (`OIDC_VERIFY_SSL=True`)
+- Use system environment variables instead of `.env` files
+- Configure proper HTTPS redirect URIs
+- Implement proper logging and monitoring
 
-3. Instala las dependencias:
-   ```
-   pip install -r requirements.txt
-   ```
+## Troubleshooting
 
-4. Instala la dependencia de mozilla-django-oidc (no incluida en requirements.txt):
-   ```
-   pip install mozilla-django-oidc
-   ```
+### Common Issues
 
-5. Crea y configura el archivo `.env` como se describió anteriormente.
+1. **Authentication Failed**
+   - Verify Keycloak client configuration
+   - Check redirect URIs match exactly
+   - Ensure client secret is correct
 
-6. Ejecuta las migraciones de la base de datos:
-   ```
-   python manage.py migrate
-   ```
+2. **SSL Certificate Errors**
+   - For development: set `OIDC_VERIFY_SSL=False`
+   - For production: ensure valid SSL certificates
 
-7. Inicia el servidor de desarrollo:
-   ```
-   python manage.py runserver
-   ```
+3. **Token Validation Errors**
+   - Verify JWKS endpoint is accessible
+   - Check token expiration settings
+   - Ensure proper key configuration
 
-## Endpoints de Autenticación
+### Debugging
 
-El proyecto incluye los siguientes endpoints para la autenticación con Keycloak:
+Enable Django debug mode and check logs for detailed error information:
 
-- **Iniciar autenticación**: `/oidc/authenticate/`
-- **Callback de autenticación**: `/oidc/callback/`
-- **Obtener token**: `/rest/v1/oidc/obtener-token/get-token/`
-- **Información del usuario**: `/rest/v1/oidc/obtener-token/me/`
+```python
+# settings.py
+DEBUG = True
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'mozilla_django_oidc': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
+}
+```
 
-## Notas Importantes
+## Security Considerations
 
-- Las claves y secretos proporcionados en este ejemplo son solo para fines de demostración. En un entorno de producción, debes generar tus propias claves seguras.
-- Nunca compartas tus claves privadas o secretos de cliente en repositorios públicos.
-- Para entornos de producción, considera utilizar variables de entorno del sistema en lugar de un archivo `.env`.
-- El proyecto está configurado para almacenar los tokens de acceso y ID en la sesión del usuario, lo que permite su uso en las solicitudes a la API.
-- Se recomienda actualizar el archivo `requirements.txt` para incluir la dependencia `mozilla-django-oidc` y así facilitar la instalación del proyecto.
+- **Never commit secrets**: Keep `.env` files out of version control
+- **Use HTTPS**: Always use HTTPS in production environments
+- **Token Security**: Implement proper token storage and rotation
+- **Regular Updates**: Keep dependencies updated for security patches
+- **Access Control**: Implement proper role-based access control
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## Support
+
+For issues and questions:
+- Check the [Issues](https://github.com/NexosoftDev/drf_oidc_connect/issues) section
+- Review Keycloak and Django OIDC documentation
+- Contact the development team
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
